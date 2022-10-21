@@ -1,0 +1,51 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+
+args = getResolvedOptions(sys.argv, ["1d_parcial"])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args["1d_parcial"], args)
+
+# Se genera un nodo de s3
+S3bucket_node1 = glueContext.create_dynamic_frame.from_catalog(
+    database="news", table_name="final", transformation_ctx="s3_node1"
+)
+
+# Script generated for node ApplyMapping
+Mapping_node2 = ApplyMapping.apply(
+    frame=s3_node1,
+    mappings=[
+        ("tema", "string", "tema", "string"),
+        ("id", "string", "id", "string"),
+        ("categoria", "string", "categoria", "string"),
+        ("link", "string", "link", "string"),
+        ("estructura", "string", "estructura", "string"),
+        ("col5", "string", "col5", "string"),
+        ("periodico", "string", "periodico", "string"),
+        ("year", "bigint", "year", "bigint"),
+        ("month", "bigint", "month", "string"),
+        ("day", "bigint", "day", "string"),
+    ],
+    transformation_ctx="mapping_node2",
+)
+
+# Script generated for node S3 bucket
+node3 = glueContext.getSink(
+    path="s3://periodicoparcial/news/raw/",
+    connection_type="s3",
+    updateBehavior="UPDATE_IN_DATABASE",
+    partitionKeys=["periodico", "year", "month", "day"],
+    compression="snappy",
+    enableUpdateCatalog=True,
+    transformation_ctx="node3",
+)
+S3bucket_node3.setCatalogInfo(catalogDatabase="news", catalogTableName="news_daily")
+node3.setFormat("glueparquet")
+node3.writeFrame(Mapping_node2)
+job.commit()

@@ -1,0 +1,35 @@
+{
+  "jobConfig": {
+    "name": "jobparcial2",
+    "description": "",
+    "role": "arn:aws:iam::525439767617:role/LabRole",
+    "command": "pythonshell",
+    "version": "1.0",
+    "workerType": null,
+    "numberOfWorkers": null,
+    "maxCapacity": 0.0625,
+    "maxRetries": 3,
+    "timeout": 2880,
+    "maxConcurrentRuns": 1,
+    "security": "none",
+    "scriptName": "eltiempo.py",
+    "scriptLocation": "s3://aws-glue-assets-525439767617-us-east-1/scripts/",
+    "language": "python-3",
+    "jobParameters": [],
+    "tags": [],
+    "jobMode": "DEVELOPER_MODE",
+    "developerMode": true,
+    "connectionsList": [],
+    "temporaryDirectory": "s3://aws-glue-assets-525439767617-us-east-1/temporary/",
+    "glueHiveMetastore": true,
+    "etlAutoTuning": false,
+    "flexExecution": false,
+    "minFlexWorkers": null,
+    "sourceControlDetails": {
+      "Provider": "GITHUB"
+    },
+    "etlAutoScaling": false
+  },
+  "hasBeenSaved": false,
+  "script": "import requests\nfrom datetime import date\nimport boto3\n\nS3_BUCKET = 'periodicoparcial'\ns3 = boto3.client('s3')\n\ndef upload_file(file_name, bucket, object_name=None):\n  if object_name is None:\n    object_name = os.path.basename(file_name)\n    try:\n      response = s3.upload_file(file_name, bucket, object_name)\n    except ClientError as e: \n      logging.error(e)\n      return False\n    return True   \n\nurl = \"https://www.eltiempo.com\"\nname = \"El Tiempo\"\nfecha = date.today()\nresponse = requests.get(url)\ns3 = boto3.client('s3')\nwith open(\"/tmp/eltiempo.html\",'wb+') as f:\n    f.write(response.content)\n    f.close()\nwith open(\"/tmp/eltiempo.html\", \"rb+\") as f:\n    s3.upload_fileobj(f, S3_BUCKET, f\"raw/periodico={name}/year={fecha.year}/month={fecha.month}/day={fecha.day}/eltiempo-{fecha}.html\")\n    f.close()"
+}
